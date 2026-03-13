@@ -1,0 +1,8 @@
+﻿LOAD DATABASE
+     FROM sqlite:///C:/data/kamadhenu.db
+     INTO postgresql://postgres:postgres123@host.docker.internal:5432/kamadhenu_DB
+
+WITH include drop, create tables, create indexes, reset sequences,
+     batch size = 50000, batch concurrency = 1
+
+SET maintenance_work_mem = '512 MB';
