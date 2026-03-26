@@ -29,17 +29,11 @@ from flask import send_file
 translator = GoogleTranslator(source='auto', target='en')
 print(translator.translate("ನಮಸ್ಕಾರ"))  # Kannada → English
 # Add these imports with your existing ones
-from shapely.geometry import Point, Polygon
 import threading
 import time
 import requests
-NODEMCU_IP = "esp32.local"  # or your ESP32's IP address
-GPS_URL = f"http://{NODEMCU_IP}/gps"
 
-# Tracking variables
-last_alert_time = None
-tracking_active = False
-tracking_thread = None
+
 #import google.generativeai as genai
 
 # Load environment variables
