@@ -443,6 +443,7 @@ def track_cow(cow_id):
         return redirect(url_for("list_cows"))
     
     return render_template("cow_tracking.html", cow_id=cow_id, cow_breed=cow['breed'])
+    '''
 @app.route("/api/gps_location", methods=["POST"])
 def api_gps_location_post():
     try:
@@ -485,6 +486,7 @@ def api_gps_location_post():
     except Exception as e:
         print(f"GPS API error: {e}")
         return jsonify({"error": str(e)}), 500
+        '''
 @app.route('/api/gps_location/<cow_id>')
 def api_gps_location(cow_id):
     """API endpoint to get latest GPS location"""
