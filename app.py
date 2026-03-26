@@ -3869,47 +3869,8 @@ def save_fence():
         import traceback
         traceback.print_exc()
         return jsonify({"status": "error", "message": str(e)}), 500
-@app.route('/api/tracking_status/<cow_id>')
-def api_tracking_status(cow_id):
-    """Check if GPS tracking is active for a cow"""
-    if "farmer_id" not in session:
-        return jsonify({"error": "Unauthorized"}), 401
-    
-    global tracking_active
-    
-    # Get latest GPS data
-    
-    # Check if cow has geofence
-    polygon = get_geofence_polygon(cow_id)
-    
-    return jsonify({
-        "success": True,
-        "cow_id": cow_id,
-        "tracking_active": tracking_active,
-        "has_geofence": polygon is not None,
-        
-    })
-@app.route('/api/toggle_tracking/<cow_id>', methods=['POST'])
-def api_toggle_tracking(cow_id):
-    """Manually start or stop GPS tracking"""
-    if "farmer_id" not in session:
-        return jsonify({"error": "Unauthorized"}), 401
-    
-    action = request.json.get('action', 'start')  # 'start' or 'stop'
-    
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("SELECT breed FROM cows WHERE cow_id=%s AND farmer_id=%s", 
-                  (cow_id, session["farmer_id"]))
-    cow = cursor.fetchone()
-    conn.close()
-    
-    if not cow:
-        return jsonify({"error": "Cow not found"}), 404
-    
-    
-    else:
-        return jsonify({"error": "Invalid action. Use 'start' or 'stop'"}), 400
+
+
 @app.route("/get_cow_details/<cow_id>")
 def get_cow_details(cow_id):
     """Get cow details for editing"""
