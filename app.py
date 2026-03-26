@@ -341,20 +341,10 @@ def get_geofence_polygon(cow_id):
     return None
 
 def send_telegram_alert(cow_id, lat, lon, cow_name=None):
-    """Send Telegram alert when cow leaves safe zone"""
-    global last_alert_time
-    
+    """Send Telegram alert when cow leaves safe zone"""    
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
         print("⚠️ Telegram credentials not configured")
         return
-    
-    now = datetime.now()
-    
-    # Avoid spamming - only send alert every 60 seconds
-    if last_alert_time and (now - last_alert_time).total_seconds() < 60:
-        return
-    
-    last_alert_time = now
     
     cow_name_text = f" ({cow_name})" if cow_name else ""
     gmap_link = f"https://maps.google.com/?q={lat},{lon}"
@@ -363,7 +353,7 @@ def send_telegram_alert(cow_id, lat, lon, cow_name=None):
         f"Cow ID: {cow_id}\n"
         f"Location: {lat}, {lon}\n"
         f"Map: {gmap_link}\n"
-        f"Time: {now.strftime('%Y-%m-%d %H:%M:%S')}"
+        f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
     )
     
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
@@ -374,11 +364,6 @@ def send_telegram_alert(cow_id, lat, lon, cow_name=None):
         print(f"✅ Telegram alert sent for cow {cow_id}")
     except Exception as e:
         print(f"❌ Error sending Telegram alert: {e}")
-
-
-
-
-
 
 def save_gps_location(cow_id, lat, lng):
     """Save GPS location to database (PostgreSQL version)"""
@@ -443,12 +428,11 @@ def track_cow(cow_id):
         return redirect(url_for("list_cows"))
     
     return render_template("cow_tracking.html", cow_id=cow_id, cow_breed=cow['breed'])
-    '''
 @app.route("/api/gps_location", methods=["POST"])
 def api_gps_location_post():
     try:
         data = request.get_json()
-        print(f"Received GPS data: {data}")
+        print(f"Received GPS data: {data}")  # Add this for debugging
         
         cow_id = data.get('cow_id')
         lat = data.get('lat')
@@ -486,7 +470,6 @@ def api_gps_location_post():
     except Exception as e:
         print(f"GPS API error: {e}")
         return jsonify({"error": str(e)}), 500
-        '''
 @app.route('/api/gps_location/<cow_id>')
 def api_gps_location(cow_id):
     """API endpoint to get latest GPS location"""
@@ -4085,11 +4068,9 @@ def save_fence():
         return jsonify({"status": "error", "message": str(e)}), 500
 @app.route('/api/tracking_status/<cow_id>')
 def api_tracking_status(cow_id):
-    """Check if GPS tracking is active for a cow"""
+    """Check GPS status for a cow"""
     if "farmer_id" not in session:
         return jsonify({"error": "Unauthorized"}), 401
-    
-    global tracking_active
     
     # Get latest GPS data
     gps_data = get_latest_gps(cow_id)
@@ -4097,10 +4078,24 @@ def api_tracking_status(cow_id):
     # Check if cow has geofence
     polygon = get_geofence_polygon(cow_id)
     
+    # Check if GPS data is recent (within last 5 minutes)
+    is_active = False
+    if gps_data and gps_data['timestamp']:
+        from datetime import datetime, timedelta
+        if isinstance(gps_data['timestamp'], str):
+            # Parse string timestamp
+            gps_time = datetime.fromisoformat(gps_data['timestamp'].replace('Z', '+00:00'))
+        else:
+            gps_time = gps_data['timestamp']
+        
+        # Check if within last 5 minutes
+        if datetime.now() - gps_time < timedelta(minutes=5):
+            is_active = True
+    
     return jsonify({
         "success": True,
         "cow_id": cow_id,
-        "tracking_active": tracking_active,
+        "tracking_active": is_active,
         "has_geofence": polygon is not None,
         "has_gps_data": gps_data is not None,
         "last_gps": {
@@ -4109,7 +4104,6 @@ def api_tracking_status(cow_id):
             "timestamp": gps_data['timestamp'] if gps_data else None
         } if gps_data else None
     })
-
 @app.route("/get_cow_details/<cow_id>")
 def get_cow_details(cow_id):
     """Get cow details for editing"""
