@@ -447,41 +447,40 @@ def track_cow(cow_id):
 def api_gps_location_post():
     try:
         data = request.get_json()
+        print(f"Received GPS data: {data}")
+        
         cow_id = data.get('cow_id')
         lat = data.get('lat')
         lng = data.get('lng')
         
+        if not cow_id or not lat or not lng:
+            return jsonify({"error": "Missing data"}), 400
+        
         # Save to database
         conn = get_db()
         cursor = conn.cursor()
+        
+        # Create table if not exists
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS gps_tracking (
+                id SERIAL PRIMARY KEY,
+                cow_id VARCHAR(50) NOT NULL,
+                latitude DOUBLE PRECISION NOT NULL,
+                longitude DOUBLE PRECISION NOT NULL,
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # Insert GPS data
         cursor.execute("""
             INSERT INTO gps_tracking (cow_id, latitude, longitude)
             VALUES (%s, %s, %s)
         """, (cow_id, lat, lng))
+        
         conn.commit()
-        
-        # ========== CHECK GEOFENCE ==========
-        polygon = get_geofence_polygon(cow_id)
-        
-        if polygon:
-            from shapely.geometry import Point
-            point = Point(lng, lat)
-            
-            if not polygon.contains(point):
-                # Cow is OUTSIDE - send alert
-                print(f"⚠️ Cow {cow_id} is OUTSIDE geofence!")
-                
-                # Get cow details
-                cursor.execute("SELECT breed FROM cows WHERE cow_id=%s", (cow_id,))
-                cow = cursor.fetchone()
-                cow_name = cow['breed'] if cow else None
-                
-                # Send Telegram alert
-                send_telegram_alert(cow_id, lat, lng, cow_name)
-                
         conn.close()
         
-        return jsonify({"success": True}), 200
+        return jsonify({"success": True, "message": "GPS data saved"}), 200
         
     except Exception as e:
         print(f"GPS API error: {e}")
