@@ -364,7 +364,6 @@ def send_telegram_alert(cow_id, lat, lon, cow_name=None):
         print(f"✅ Telegram alert sent for cow {cow_id}")
     except Exception as e:
         print(f"❌ Error sending Telegram alert: {e}")
-
 def save_gps_location(cow_id, lat, lng):
     """Save GPS location to database (PostgreSQL version)"""
     conn = get_db()
@@ -4082,20 +4081,22 @@ def api_tracking_status(cow_id):
     is_active = False
     if gps_data and gps_data['timestamp']:
         from datetime import datetime, timedelta
-        if isinstance(gps_data['timestamp'], str):
-            # Parse string timestamp
-            gps_time = datetime.fromisoformat(gps_data['timestamp'].replace('Z', '+00:00'))
-        else:
-            gps_time = gps_data['timestamp']
+        gps_time = gps_data['timestamp']
+        # Handle different timestamp formats
+        if isinstance(gps_time, str):
+            try:
+                gps_time = datetime.fromisoformat(gps_time.replace('Z', '+00:00'))
+            except:
+                pass
         
-        # Check if within last 5 minutes
-        if datetime.now() - gps_time < timedelta(minutes=5):
-            is_active = True
+        if isinstance(gps_time, datetime):
+            if datetime.now() - gps_time < timedelta(minutes=5):
+                is_active = True
     
     return jsonify({
         "success": True,
         "cow_id": cow_id,
-        "tracking_active": is_active,
+        "tracking_active": is_active,  # Now uses is_active instead of undefined tracking_active
         "has_geofence": polygon is not None,
         "has_gps_data": gps_data is not None,
         "last_gps": {
